@@ -14,6 +14,8 @@ chmod +x adsb_feeder_installer_v2.sh
 
 That's it! Enter your location when prompted and wait 15-20 minutes.
 
+> **💡 Tip:** Name your Pi using its zip code (e.g., `adsb-pi-92882`) for easy identification!
+
 ## 📋 What This Does
 
 The installer automatically:
@@ -156,7 +158,7 @@ sudo systemctl restart mlat-client
 Each feeder gets a unique name automatically: `hostname_MAC`
 
 Deploy multiple feeders by:
-1. Flashing SD cards with unique hostnames
+1. Flashing SD cards with zip code hostnames (e.g., `adsb-pi-92882`, `adsb-pi-90210`)
 2. Running the installer on each Pi
 3. All feeders auto-connect to the same aggregator
 
