@@ -1,5 +1,17 @@
 # ADS-B Feeder Quick Start Guide
-## Raspberry Pi OS Bookworm Lite
+### Prerequisites
+
+**Hardware per feeder:**
+- Raspberry Pi 3B or newer
+- FlightAware USB SDR dongle (or compatible RTL-SDR)
+- MicroSD card (16GB minimum, Class 10)
+- Power supply (5V 2.5A minimum)
+- Internet connection (WiFi or Ethernet)
+
+**Software:**
+- Raspberry Pi Bookwork OS Lite (64-bit recommended)
+- SSH enabled
+
 
 ### 🚀 Quick Deploy (5 Minutes to First Aircraft!)
 
@@ -11,7 +23,7 @@
 
 1. Download **Raspberry Pi Imager**: https://www.raspberrypi.com/software/
 2. Insert SD card (16GB+ recommended)
-3. Click **"Choose OS"** → **"Raspberry Pi OS (other)"** → **"Raspberry Pi OS Lite (64-bit)"**
+3. Click **"Choose OS"** → **"Raspberry Pi OS (other)"** → **"Raspberry Pi OS Lite Bookworm (64-bit)"**
 4. Click **"Choose Storage"** → Select your SD card
 5. Click **⚙️ (Settings)**:
    - ✅ Set hostname: `adsb-pi-01` (increment for each feeder)
