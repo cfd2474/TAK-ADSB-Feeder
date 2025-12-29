@@ -1,0 +1,691 @@
+# ADS-B Feeder Deployment Guide
+## Mass Production Instructions
+
+### Prerequisites
+
+**Hardware per feeder:**
+- Raspberry Pi 3B or newer
+- FlightAware USB SDR dongle (or compatible RTL-SDR)
+- MicroSD card (16GB minimum, Class 10)
+- Power supply (5V 2.5A minimum)
+- Internet connection (WiFi or Ethernet)
+
+**Software:**
+- Raspberry Pi OS Lite (64-bit recommended)
+- SSH enabled
+
+---
+
+## Pre-Installation Setup
+
+### 1. Prepare SD Card
+
+Download and install Raspberry Pi OS Lite:
+```bash
+# Use Raspberry Pi Imager to flash the SD card
+# Enable SSH during imaging (in advanced options)
+# Set hostname using zip code: adsb-pi-92882, adsb-pi-92501, etc.
+# Optionally set WiFi credentials
+```
+
+**Naming Convention:** Use `adsb-pi-ZIPCODE` format
+- Example: Corona, CA → `adsb-pi-92882`
+- Example: Riverside, CA → `adsb-pi-92501`
+- Example: San Bernardino, CA → `adsb-pi-92401`
+
+This makes geographic tracking and coverage mapping much easier!
+
+### 2. Get Tailscale Auth Key
+
+1. Go to https://login.tailscale.com/admin/settings/keys
+2. Generate a new auth key
+3. **Important:** Enable "Reusable" and set expiration appropriately
+4. Copy the key - you'll need it for bulk installations
+
+---
+
+## Installation Methods
+
+### Method 1: Interactive Installation (Testing/Single Unit)
+
+**On each Raspberry Pi:**
+
+```bash
+# 1. SSH into the Pi (replace with your zip code)
+ssh pi@adsb-pi-92882.local
+
+# 2. Download installer from GitHub
+wget https://raw.githubusercontent.com/cfd2474/TAK-ADSB-Feeder/main/adsb_feeder_installer_v2.sh
+
+# 3. Make executable and run
+chmod +x adsb_feeder_installer_v2.sh
+./adsb_feeder_installer_v2.sh
+
+# 4. Follow prompts for:
+#    - Latitude
+#    - Longitude  
+#    - Altitude (in meters)
+#    - Tailscale authentication (auto with embedded key)
+```
+
+### Method 2: Automated Installation (Mass Production)
+
+**The installer is already configured with your Tailscale auth key!**
+
+For fully automated deployment, edit the installer to set default location:
+
+```bash
+# Edit these lines in adsb_feeder_installer_v2.sh:
+TAILSCALE_AUTH_KEY="tskey-auth-kSQ4LgPRaL11CNTRL-KP6wnd6pnXLdGtYjBp5TYL4YkkvS5hKJ"  # Already set!
+FEEDER_LAT="33.834378"      # Your default latitude
+FEEDER_LON="-117.573072"    # Your default longitude
+FEEDER_ALT="380"            # Your default altitude in meters
+```
+
+**Then deploy with one command:**
+
+```bash
+# Corona, CA (92882)
+ssh pi@adsb-pi-92882.local "wget -qO- https://raw.githubusercontent.com/cfd2474/TAK-ADSB-Feeder/main/adsb_feeder_installer_v2.sh | bash"
+
+# Riverside, CA (92501)
+ssh pi@adsb-pi-92501.local "wget -qO- https://raw.githubusercontent.com/cfd2474/TAK-ADSB-Feeder/main/adsb_feeder_installer_v2.sh | bash"
+
+# San Bernardino, CA (92401)
+ssh pi@adsb-pi-92401.local "wget -qO- https://raw.githubusercontent.com/cfd2474/TAK-ADSB-Feeder/main/adsb_feeder_installer_v2.sh | bash"
+```
+
+**No prompts needed!** Runs completely unattended.
+
+---
+
+## Configuration Reference
+
+### Current Working Configuration
+
+**Aggregator Server:**
+- Tailscale IP: `100.117.34.88`
+- Beast Port: `30004`
+- MLAT Port: `30105`
+- Location: `33.834378, -117.573072`
+
+**Pi Feeder Settings:**
+- RTL-SDR Gain: `-10` (auto)
+- PPM Correction: `0`
+- Max Range: `360` NM
+- Local Beast Port: `30005`
+
+### Key Files on Each Feeder
+
+**Service Files:**
+- `/etc/systemd/system/readsb.service` - Main ADS-B decoder
+- `/etc/systemd/system/mlat-client.service` - MLAT client
+
+**Configuration Files (reference only):**
+- `/etc/default/readsb` - readsb config
+- `/etc/default/mlat-client` - MLAT config
+- `/etc/adsb-feeder-info.txt` - Feeder metadata
+
+**Driver Configuration:**
+- `/etc/modprobe.d/blacklist-rtl.conf` - DVB-T blacklist
+- `/etc/udev/rules.d/rtl-sdr.rules` - USB permissions
+
+---
+
+## Post-Installation Verification
+
+### On the Pi:
+
+```bash
+# Check service status
+sudo systemctl status readsb
+sudo systemctl status mlat-client
+sudo systemctl status tailscaled
+
+# Check network connections
+netstat -tn | grep 100.117.34.88
+
+# Expected output:
+# tcp  0  0  100.x.x.x:XXXXX  100.117.34.88:30004  ESTABLISHED  <- Beast
+# tcp  0  0  100.x.x.x:XXXXX  100.117.34.88:30105  ESTABLISHED  <- MLAT
+
+# View live aircraft
+/usr/local/bin/viewadsb
+
+# Check logs
+sudo journalctl -fu readsb
+sudo journalctl -fu mlat-client
+```
+
+### On the Aggregator:
+
+```bash
+# Check for connected feeders
+sudo netstat -tn | grep 30004
+sudo netstat -tn | grep 30105
+
+# View aggregated data
+# Open browser to: http://100.117.34.88:8080
+```
+
+---
+
+## Troubleshooting
+
+### No Beast Connection (Port 30004)
+
+**Problem:** Pi shows no connection to `100.117.34.88:30004`
+
+**Check:**
+```bash
+# 1. Verify readsb has --net flag
+ps aux | grep readsb | grep -- --net
+
+# 2. If missing, edit service:
+sudo nano /etc/systemd/system/readsb.service
+# Add --net after --ppm 0
+
+# 3. Reload and restart
+sudo systemctl daemon-reload
+sudo systemctl restart readsb
+```
+
+### No MLAT Connection (Port 30105)
+
+**Check:**
+```bash
+# 1. Verify readsb is feeding local Beast
+sudo netstat -tln | grep 30005
+
+# 2. Check mlat-client logs
+sudo journalctl -fu mlat-client
+
+# 3. Restart services in order
+sudo systemctl restart readsb
+sleep 5
+sudo systemctl restart mlat-client
+```
+
+### Tailscale Not Connected
+
+**Fix:**
+```bash
+# Check status
+sudo tailscale status
+
+# Re-authenticate if needed
+sudo tailscale up --accept-routes
+
+# Or with auth key
+sudo tailscale up --authkey=tskey-auth-XXXXXXXXXXXX --accept-routes
+```
+
+### RTL-SDR Not Detected
+
+**Check:**
+```bash
+# List USB devices
+lsusb | grep RTL
+
+# Should show: "Realtek Semiconductor Corp. RTL2838 DVB-T"
+
+# If not detected:
+# 1. Check physical connection
+# 2. Try different USB port
+# 3. Reboot Pi
+```
+
+### Aircraft Data But No Display
+
+**Check aggregator side:**
+```bash
+# On aggregator, verify readsb is running
+ps aux | grep readsb
+
+# Check web interface
+curl http://100.117.34.88:8080
+
+# Restart tar1090 if needed
+sudo systemctl restart tar1090
+```
+
+---
+
+## Scaling to Multiple Feeders
+
+### Naming Convention
+
+Feeders are automatically named using: `hostname_MAC`
+
+**Hostname Format:** `adsb-pi-ZIPCODE`
+
+Examples:
+- `adsb-pi-92882` → Feeder name: `adsb-pi-92882_d31d2f` (Corona, CA)
+- `adsb-pi-92501` → Feeder name: `adsb-pi-92501_a4f2c1` (Riverside, CA)
+- `adsb-pi-92401` → Feeder name: `adsb-pi-92401_f8e9d2` (San Bernardino, CA)
+
+**Benefits of zip code naming:**
+- Instant geographic identification
+- Easy coverage gap analysis
+- Simplified troubleshooting ("92882 feeder offline")
+- Better inventory organization
+- Natural grouping by region
+
+### Tracking Feeders
+
+Each feeder saves its info to `/etc/adsb-feeder-info.txt`:
+```
+Feeder Name: adsb-pi-92882_d31d2f
+Feeder Tailscale IP: 100.86.32.113
+Aggregator IP: 100.117.34.88
+Location: 33.834378, -117.573072 @ 380m
+Installation Date: Sat Dec 28 17:30:00 PST 2024
+```
+
+**Example Inventory Spreadsheet:**
+
+| Zip Code | Hostname | Feeder Name | Tailscale IP | Location | Installed | Status |
+|----------|----------|-------------|--------------|----------|-----------|---------|
+| 92882 | adsb-pi-92882 | adsb-pi-92882_d31d2f | 100.86.32.113 | Corona, CA | 12/28/24 | ✅ Active |
+| 92501 | adsb-pi-92501 | adsb-pi-92501_a4f2c1 | 100.92.14.205 | Riverside, CA | 12/28/24 | ✅ Active |
+| 92401 | adsb-pi-92401 | adsb-pi-92401_f8e9d2 | 100.103.22.88 | San Bernardino, CA | 12/28/24 | ✅ Active |
+| 90210 | adsb-pi-90210 | adsb-pi-90210_b3c4d5 | 100.115.45.67 | Beverly Hills, CA | 12/29/24 | ✅ Active |
+
+This makes it easy to:
+- See coverage by region
+- Identify deployment gaps
+- Plan expansion by zip code
+- Track performance by area
+
+### Centralized Monitoring
+
+**On aggregator, create a feeder tracking script:**
+
+```bash
+#!/bin/bash
+# Check all connected feeders
+# Save as: /usr/local/bin/feeder-status.sh
+
+echo "Connected Beast Feeders (Port 30004):"
+sudo netstat -tn | grep :30004 | grep ESTABLISHED | awk '{print $5}' | cut -d: -f1
+
+echo ""
+echo "Connected MLAT Feeders (Port 30105):"
+sudo netstat -tn | grep :30105 | grep ESTABLISHED | awk '{print $5}' | cut -d: -f1
+
+echo ""
+echo "Total Aircraft Tracked:"
+curl -s http://localhost:8080/data/aircraft.json | jq '.aircraft | length'
+```
+
+### Geographic Coverage Planning
+
+**Using zip code naming, you can strategically plan coverage:**
+
+```
+Southern California Coverage Map:
+
+Inland Empire Region:
+├─ 92882 (Corona)          ✅ Deployed
+├─ 92501 (Riverside)       ✅ Deployed  
+├─ 92401 (San Bernardino)  ✅ Deployed
+└─ 92253 (La Quinta)       ⬜ Planned
+
+Los Angeles Basin:
+├─ 90210 (Beverly Hills)   ✅ Deployed
+├─ 90028 (Hollywood)       ⬜ Planned
+├─ 90013 (Downtown LA)     ⬜ Planned
+└─ 90731 (San Pedro)       ⬜ Planned
+
+Orange County:
+├─ 92602 (Irvine)          ⬜ Planned
+├─ 92648 (Huntington Bch)  ⬜ Planned
+└─ 92651 (Laguna Beach)    ⬜ Planned
+```
+
+**Benefits:**
+- Visual coverage gaps by region
+- Plan expansion based on zip codes
+- Optimize feeder placement for overlapping coverage
+- Easy to communicate deployment plans
+
+---
+
+## Strategic Deployment Planning
+
+### Coverage Analysis by Zip Code
+
+**Understanding ADS-B Range:**
+- Typical range: 150-250 nautical miles (line of sight)
+- Aircraft at 35,000 ft: ~250 nm range
+- Aircraft at 10,000 ft: ~100 nm range
+- Ground vehicles/aircraft: 5-10 nm range
+
+**Optimal Feeder Spacing:**
+- Urban areas: 20-30 mile spacing
+- Suburban areas: 30-50 mile spacing  
+- Rural areas: 50-100 mile spacing
+
+### Example Deployment Strategy - Southern California
+
+**Phase 1: Core Coverage (Inland Empire)**
+```
+Priority 1 - Airport Coverage:
+├─ 92507 (March ARB, Riverside)     ⭐ High Priority
+├─ 92223 (Flabob Airport)           ⭐ High Priority
+└─ 92880 (Corona Municipal)         ⭐ High Priority
+
+Priority 2 - Population Centers:
+├─ 92882 (Corona)                   ✅ Deployed
+├─ 92501 (Downtown Riverside)       ✅ Deployed
+├─ 92401 (San Bernardino)           ✅ Deployed
+└─ 92373 (Redlands)                 ⬜ Planned
+
+Priority 3 - Gap Filling:
+├─ 92583 (San Jacinto)              ⬜ Planned
+├─ 92324 (Colton)                   ⬜ Planned
+└─ 92532 (Lake Elsinore)            ⬜ Planned
+```
+
+**Phase 2: Extended Coverage (LA Basin)**
+```
+Airport Coverage:
+├─ 90045 (LAX)                      ⭐ High Priority
+├─ 91608 (Van Nuys)                 ⭐ High Priority
+├─ 90250 (Hawthorne - SpaceX)       ⭐ High Priority
+└─ 91505 (Burbank)                  ⭐ High Priority
+
+Urban Centers:
+├─ 90210 (Beverly Hills)            ⬜ Planned
+├─ 90028 (Hollywood)                ⬜ Planned
+├─ 90013 (Downtown LA)              ⬜ Planned
+└─ 90731 (San Pedro - Port)         ⬜ Planned
+```
+
+**Phase 3: Coastal & Mountain Coverage**
+```
+Orange County Coast:
+├─ 92648 (Huntington Beach)         ⬜ Planned
+├─ 92651 (Laguna Beach)             ⬜ Planned
+└─ 92602 (John Wayne Airport)       ⭐ High Priority
+
+Mountain/Desert Coverage:
+├─ 92315 (Big Bear)                 ⬜ Planned (high altitude!)
+├─ 92252 (Joshua Tree)              ⬜ Planned
+└─ 92284 (Yucca Valley)             ⬜ Planned
+```
+
+### Coverage Optimization Tips
+
+**1. Altitude Matters**
+- Higher elevation = better range
+- Rooftop installations preferred
+- Hill/mountain locations extend coverage 2-3x
+
+**2. Antenna Placement**
+- Clear line of sight in all directions
+- Minimize obstructions (buildings, trees)
+- Ground plane important for omni antennas
+
+**3. Overlapping Coverage**
+- 30-40% overlap ideal for MLAT
+- Multiple feeders improve position accuracy
+- Helps with aircraft at different altitudes
+
+**4. Special Locations**
+High-value deployment sites:
+- Airports (military and civilian)
+- Mountain peaks (2-3x normal range)
+- Coastal areas (ocean coverage)
+- Major highways/corridors
+- SpaceX/aerospace facilities
+
+### Measuring Success
+
+**Coverage Metrics to Track:**
+```bash
+# On aggregator, check coverage:
+# - Total aircraft tracked
+# - Max range achieved per feeder
+# - MLAT success rate
+# - Position updates per second
+# - Message rate per feeder
+```
+
+**Target Metrics:**
+- Urban feeder: 50-150 aircraft simultaneous
+- Suburban feeder: 30-100 aircraft
+- Rural/mountain: 100-300 aircraft (extended range)
+- MLAT rate: >30% of aircraft
+
+**Coverage Gaps to Identify:**
+1. Check aggregator heatmap for weak areas
+2. Note altitudes with poor coverage
+3. Identify directions with limited range
+4. Plan feeders to fill gaps
+
+---
+
+## Performance Optimization
+
+### For Multiple Feeders in Same Location
+
+**Different locations/heights work best:**
+- Spread feeders geographically if possible
+- Different antenna heights can help
+- Each feeder adds coverage to different areas
+
+### Aggregator Capacity
+
+**Current setup can handle:**
+- 10-20 feeders easily
+- 50+ with no modification needed
+- 100+ may need tuning (increase memory, buffer sizes)
+
+### Network Bandwidth
+
+**Per feeder:**
+- Beast data: ~50-200 KB/s
+- MLAT data: ~10-50 KB/s
+- Total per feeder: ~100-300 KB/s
+
+**For 10 feeders:** ~1-3 Mbps total
+
+---
+
+## Backup and Recovery
+
+### Clone a Working SD Card
+
+```bash
+# On Linux/Mac with SD card inserted
+sudo dd if=/dev/sdX of=adsb-feeder-master.img bs=4M status=progress
+
+# Restore to new cards
+sudo dd if=adsb-feeder-master.img of=/dev/sdX bs=4M status=progress
+```
+
+**Note:** Each cloned Pi will need:
+- New hostname (or Tailscale will conflict)
+- Re-run Tailscale authentication
+
+### Quick Reconfiguration After Cloning
+
+```bash
+# 1. Change hostname to new zip code
+sudo raspi-config
+# Navigate to System Options > Hostname
+# Set to: adsb-pi-ZIPCODE (e.g., adsb-pi-92501)
+
+# 2. Reset Tailscale (uses embedded auth key)
+sudo tailscale logout
+sudo tailscale up --authkey=tskey-auth-kSQ4LgPRaL11CNTRL-KP6wnd6pnXLdGtYjBp5TYL4YkkvS5hKJ --accept-routes
+
+# 3. Update feeder name in services (uses new hostname automatically)
+sudo systemctl restart readsb mlat-client
+
+# 4. Verify new identity
+cat /etc/adsb-feeder-info.txt
+hostname
+tailscale ip
+```
+
+**The feeder name will auto-update to match the new hostname + MAC address.**
+
+Example: Clone `adsb-pi-92882` → rename to `adsb-pi-92501` → becomes `adsb-pi-92501_a4f2c1`
+
+---
+
+## Maintenance
+
+### Regular Updates
+
+**Monthly (at minimum):**
+```bash
+# System updates
+sudo apt-get update
+sudo apt-get upgrade -y
+
+# Reboot after kernel updates
+sudo reboot
+```
+
+**Quarterly:**
+```bash
+# Update readsb
+cd /tmp
+git clone https://github.com/wiedehopf/readsb.git
+cd readsb
+make -j$(nproc) RTLSDR=yes
+sudo systemctl stop readsb
+sudo cp readsb /usr/local/bin/
+sudo systemctl start readsb
+
+# Update mlat-client
+cd /tmp
+git clone https://github.com/wiedehopf/mlat-client.git
+cd mlat-client
+sudo python3 setup.py install
+sudo systemctl restart mlat-client
+```
+
+### Log Rotation
+
+Services use systemd journal - logs auto-rotate.
+
+**To check disk usage:**
+```bash
+sudo journalctl --disk-usage
+
+# Clean old logs if needed
+sudo journalctl --vacuum-time=7d
+```
+
+---
+
+## Support and Resources
+
+### Logs Location
+- readsb: `sudo journalctl -u readsb`
+- mlat-client: `sudo journalctl -u mlat-client`
+- Tailscale: `sudo journalctl -u tailscaled`
+
+### Useful Commands Cheat Sheet
+
+```bash
+# Restart everything
+sudo systemctl restart readsb mlat-client
+
+# Stop feeding
+sudo systemctl stop readsb mlat-client
+
+# Check what's connected
+netstat -tn | grep 100.117.34.88
+
+# Monitor live data
+/usr/local/bin/viewadsb
+
+# Check SDR is working
+rtl_test -t
+```
+
+### Remote Management via Tailscale
+
+All feeders are accessible via their Tailscale IPs:
+```bash
+# SSH to any feeder (by zip code hostname)
+ssh pi@adsb-pi-92882.local  # Corona, CA
+ssh pi@adsb-pi-92501.local  # Riverside, CA
+ssh pi@adsb-pi-92401.local  # San Bernardino, CA
+
+# Or by Tailscale IP directly
+ssh pi@100.86.32.113
+
+# Run commands remotely on specific feeder
+ssh pi@adsb-pi-92882.local "sudo systemctl status readsb"
+
+# Check all feeders in a region
+for zip in 92882 92501 92401; do
+  echo "=== Checking adsb-pi-$zip ==="
+  ssh pi@adsb-pi-$zip.local "sudo systemctl is-active readsb mlat-client"
+done
+```
+
+---
+
+## Security Notes
+
+1. **Tailscale Auth Keys:** 
+   - Keep reusable keys secure
+   - Rotate periodically
+   - Use key expiration
+
+2. **SSH Access:**
+   - Change default Pi password
+   - Consider SSH keys instead of passwords
+   - Disable password auth after key setup
+
+3. **Firewall:**
+   - Tailscale handles encryption
+   - No need to expose ports publicly
+   - All traffic stays within Tailscale network
+
+---
+
+## Production Checklist
+
+- [ ] SD card imaged with Raspberry Pi OS Bookworm Lite
+- [ ] SSH enabled
+- [ ] Hostname set to zip code format (e.g., `adsb-pi-92882`)
+- [ ] WiFi/Ethernet configured
+- [ ] RTL-SDR dongle connected
+- [ ] Antenna connected to dongle
+- [ ] Pi labeled with zip code (physical label on case)
+- [ ] Installer executed successfully
+- [ ] Both services showing as active
+- [ ] Tailscale connected
+- [ ] Beast connection established (port 30004)
+- [ ] MLAT connection established (port 30105)
+- [ ] Aircraft visible on aggregator web UI
+- [ ] Feeder info saved to `/etc/adsb-feeder-info.txt`
+- [ ] Added to inventory spreadsheet with:
+  - [ ] Zip code
+  - [ ] Hostname
+  - [ ] Tailscale IP
+  - [ ] Feeder name
+  - [ ] Geographic location
+  - [ ] Installation date
+  - [ ] Physical deployment location/address
+
+**Deployment time per feeder:** ~15-20 minutes (mostly waiting for compilation)
+
+**Recommended deployment order:**
+1. Deploy feeders in dense urban areas first (airports, cities)
+2. Fill coverage gaps based on aggregator map
+3. Extend to suburban/rural areas for extended range
+4. Use zip code mapping to plan strategic placement
+
+---
+
+*Last updated: December 28, 2024*
+*Installer version: 2.0*
