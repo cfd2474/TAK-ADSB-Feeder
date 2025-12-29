@@ -86,7 +86,7 @@ After installation, aircraft data feeds to your aggregator server where you can 
 - Aircraft tracks and history
 - Combined data from all your feeders
 
-Access the web interface at: `http://100.117.34.88:8080`
+Access the web interface at: `http://104.225.219.254/tar1090/`
 
 ## 🔍 Verification
 
