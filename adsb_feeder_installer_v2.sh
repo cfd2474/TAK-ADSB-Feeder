@@ -29,7 +29,7 @@ AGGREGATOR_MLAT_PORT="30105"
 
 # Tailscale auth key (get from https://login.tailscale.com/admin/settings/keys)
 # Leave empty to authenticate manually during installation
-TAILSCALE_AUTH_KEY="tskey-auth-kFsrRaBCam11CNTRL-MWdGu3JWaCUoZiREEijuBU2EWZq6hFeY"
+TAILSCALE_AUTH_KEY="tskey-auth-k3xBs92iA311CNTRL-S7VXRw4MaT4i5FH6gAuCU4sbWyvfYprT6"
 
 # Default location (will prompt if empty)
 FEEDER_LAT=""
