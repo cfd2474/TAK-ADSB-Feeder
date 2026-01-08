@@ -56,6 +56,16 @@ The installer automatically:
 - **[QUICK_START.md](QUICK_START.md)** - Fast-track setup guide
 - **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Complete reference for scaling to multiple feeders
 
+## 🔗 Already Have an ADS-B Receiver?
+
+If you're already running an existing ADS-B feeder, you can add my aggregator as an additional feed without disrupting your current setup:
+
+- **[PiAware/FlightAware Instructions](piaware_feeder_instructions.md)** - Feed from PiAware SD card image or package install
+- **[airplanes.live Instructions](airplanes.live_feeder_instructions.md)** - Feed from airplanes.live image
+- **[Stratux Instructions](stratux_feeder_instructions.md)** - Feed from native Stratux software
+
+All methods use SSH to create an additional feed while keeping your existing feeds working normally.
+
 ## 🔧 Configuration
 
 The installer is pre-configured with:
