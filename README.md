@@ -82,6 +82,7 @@ You'll be prompted for:
 - **Altitude** in meters (antenna height above sea level, e.g., `395`)
 
 > **📏 Altitude Tip:** Use your antenna height, not ground level! Calculate as: Ground Elevation + Building Height + Mast Height
+
 Find your ground elevation with this tool: https://whatismyelevation.com/
 
 ## 🌐 Network Architecture
