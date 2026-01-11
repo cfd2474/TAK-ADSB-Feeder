@@ -89,9 +89,12 @@ Find your ground elevation with this tool: https://whatismyelevation.com/
 
 If you've installed this feeder and want to also share data with other aggregation services:
 
-- **[FlightRadar24 Setup Instructions](FR24_FEEDER_SETUP.md)** - Add FR24 feeding to your readsb-based feeder
+- **[FlightRadar24 Setup](ADDITIONAL_FEEDER_OUTPUTS/FR24_FEEDER_SETUP.md)** - Premium subscription benefits for active feeders
+- **[airplanes.live Setup](ADDITIONAL_FEEDER_OUTPUTS/AIRPLANESLIVE_FEEDER_SETUP.md)** - Unfiltered community-driven network
+- **[ADS-B Exchange Setup](ADDITIONAL_FEEDER_OUTPUTS/ADSBEXCHANGE_FEEDER_SETUP.md)** - World's largest unfiltered aggregator
+- **[adsb.fi Setup](ADDITIONAL_FEEDER_OUTPUTS/ADSBFI_FEEDER_SETUP.md)** - Community-focused alternative network
 
-These instructions show you how to run additional feeders alongside this installation without conflicts.
+These instructions show you how to run additional feeders alongside this installation without conflicts. All services can run simultaneously with minimal resource usage.
 
 ## 🌐 Network Architecture
 
