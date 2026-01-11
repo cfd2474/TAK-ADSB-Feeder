@@ -130,9 +130,6 @@ Access each Pi's local coverage at:
 http://[TAILSCALE_IP]/tar1090/
 ```
 
-**Example:**
-- `http://100.86.194.33/tar1090/` - View adsb-pi-92878's coverage
-- `http://100.99.67.46/tar1090/` - View adsb-pi's coverage
 
 Shows:
 - Aircraft received by **this specific feeder**
