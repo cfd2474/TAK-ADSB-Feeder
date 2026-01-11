@@ -16,7 +16,7 @@ That's it! Enter your location when prompted and wait 15-20 minutes.
 
 > **💡 Tip:** Name your Pi using its zip code (e.g., `adsb-pi-92882`) for easy identification!
 
-## ✨ What's New in v4
+## ✨ What's New in v4.0
 
 - 🌐 **Local tar1090 web interface** on each Pi feeder
 - 📊 **Per-feeder statistics** and coverage visualization
@@ -130,7 +130,6 @@ Access each Pi's local coverage at:
 http://[TAILSCALE_IP]/tar1090/
 ```
 
-
 Shows:
 - Aircraft received by **this specific feeder**
 - Individual coverage area and range
@@ -229,25 +228,26 @@ lsusb | grep RTL
 
 See [QUICK_START.md](QUICK_START.md) for detailed troubleshooting.
 
-## 🔄 Updating from v3 to v4
+## 🔄 Updating Your Feeder
 
-To add local tar1090 to an existing v3 installation:
+To update your feeder installation to the latest version:
 
 ```bash
-# Download upgrade script
-wget https://raw.githubusercontent.com/cfd2474/TAK-ADSB-Feeder/main/test_local_tar1090.sh
-chmod +x test_local_tar1090.sh
+# Download the latest installer
+wget https://raw.githubusercontent.com/cfd2474/TAK-ADSB-Feeder/main/adsb_feeder_installer_v4.1.sh
+chmod +x adsb_feeder_installer_v4.1.sh
 
-# Run upgrade (auto-detects existing config)
-sudo ./test_local_tar1090.sh
+# Run the installer (it will detect and preserve your existing configuration)
+./adsb_feeder_installer_v4.1.sh
 ```
 
-This will:
-- Detect your existing lat/lon/gain settings
-- Install tar1090 and lighttpd
-- Update readsb to output JSON
-- Keep feeding to aggregator
-- Back up your current configuration
+The installer will:
+- Detect your existing installation
+- Preserve your configuration (coordinates, Tailscale, etc.)
+- Update readsb, mlat-client, and tar1090 to latest versions
+- Keep your feeder connected to the aggregator throughout the process
+
+**Note:** Your feeder will briefly disconnect during the update but will automatically reconnect once complete.
 
 ## 📈 Scaling to Multiple Feeders
 
