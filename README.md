@@ -85,6 +85,14 @@ You'll be prompted for:
 
 Find your ground elevation with this tool: https://whatismyelevation.com/
 
+## 📡 Want to Feed to Another Service?
+
+If you've installed this feeder and want to also share data with other aggregation services:
+
+- **[FlightRadar24 Setup Instructions](FR24_FEEDER_SETUP.md)** - Add FR24 feeding to your readsb-based feeder
+
+These instructions show you how to run additional feeders alongside this installation without conflicts.
+
 ## 🌐 Network Architecture
 
 ```
