@@ -132,6 +132,8 @@ Once configured:
 - You can view the aggregated data at the web interface
 - Your ADS-B Exchange feeding is not affected
 
+
+##DONT HAVE THIS OPTION TO EDIT? TRY SOCAT! FOLLOW THE AIRPLANES.LIVE SETUP INSTRUCTIONS
 ---
 
 **Note:** This configuration does not interfere with your existing ADS-B Exchange feeding. You're simply adding an additional output destination for your data.
