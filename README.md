@@ -64,6 +64,7 @@ If you're already running an existing ADS-B feeder, you can add my aggregator as
 - **[airplanes.live Instructions](airplanes.live_feeder_instructions.md)** - Feed from airplanes.live image
 - **[Stratux Instructions](stratux_feeder_instructions.md)** - Feed from native Stratux software
 - **[ADSBexchange Instructions](ADSBexchange_feeder_instructions.md)** - Feed from ADSBexchange image
+- **[MLAT Setup](MLAT_config.md)** - Setup MLAT to this aggregator **Must follow this guide if you use MLAT for other services**
 
 All methods use SSH to create an additional feed while keeping your existing feeds working normally.
 
