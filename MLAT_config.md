@@ -274,7 +274,7 @@ Accepted sync from server
 ### Verify Network Connection
 
 ```bash
-sudo ss -tnp | grep 31090
+sudo ss -tnp | grep 30105
 ```
 
 You should see:
