@@ -1,6 +1,7 @@
 # How to Feed Your Stratux to My ADS-B Aggregator
 
-This guide will walk you through configuring your Stratux device to send ADS-B data to my aggregator at **104.225.219.254**. These instructions assume you have basic terminal/command line experience. **Follow [MLAT Guide](MLAT_config.md) to add MLAT service after completing this process**
+This guide will walk you through configuring your Stratux device to send ADS-B data to my aggregator at **104.225.219.254**. These instructions assume you have basic terminal/command line experience. 
+**Follow [MLAT Guide](MLAT_config.md) to add MLAT service after completing this process**
 
 ## Prerequisites
 
