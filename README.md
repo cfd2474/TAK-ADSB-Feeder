@@ -2,20 +2,19 @@
 
 Automated installer for Raspberry Pi ADS-B feeders with Tailscale integration and **local tar1090 web interface**. Feed real-time aircraft tracking data to your aggregation server over a secure mesh network while monitoring individual feeder performance.
 
-**PLEASE READ ENTIRE DOCUMENT BEFORE INSTALLING**
+---
 
-## 🚀 Quick Install
+## ⚠️ IMPORTANT: Read This First
 
-On a Raspberry Pi running Bookworm Lite:
-```bash
-wget https://raw.githubusercontent.com/cfd2474/TAK-ADSB-Feeder/main/adsb_feeder_installer.sh
-chmod +x adsb_feeder_installer.sh
-./adsb_feeder_installer.sh
-```
+**DO NOT skip ahead to installation!** This document contains critical information about:
+- Required hardware and software configuration
+- Proper hostname setup for network identification
+- Tailscale authentication requirements
+- Your geographic coordinates and antenna altitude
 
-That's it! Enter your location when prompted and wait 15-20 minutes.
+**Take 10 minutes to read through completely before starting.**
 
-> **💡 Tip:** Name your Pi using its zip code (e.g., `adsb-pi-92882`) for easy identification!
+---
 
 ## ✨ What's New in v5.2
 
@@ -39,7 +38,7 @@ That's it! Enter your location when prompted and wait 15-20 minutes.
 - 🔍 **Better diagnostics** with local aircraft counts and performance metrics
 - 🚀 **Network-wide aggregation** to central server
 
-## 📋 What This Does
+## 📋 What This Installer Does
 
 The installer automatically:
 - ✅ Creates dedicated `/opt/TAK_ADSB/` installation directory
@@ -56,24 +55,135 @@ The installer automatically:
 - ✅ Connects to your aggregation server
 - ✅ Verifies everything is working
 
+**Installation time: 15-20 minutes**
+
 ## 🛠️ Requirements
 
 ### Hardware
-- Raspberry Pi 3B or newer
-- RTL-SDR USB dongle (FlightAware Pro Stick recommended)
-- 1090 MHz ADS-B antenna
-- MicroSD card (16GB+ recommended)
-- 5V 2.5A power supply
+- **Raspberry Pi 3B or newer** (4B recommended for best performance)
+- **RTL-SDR USB dongle** (FlightAware Pro Stick or Pro Stick Plus recommended)
+- **1090 MHz ADS-B antenna** (outdoor installation preferred)
+- **MicroSD card** (16GB minimum, 32GB recommended)
+- **Power supply** (5V 2.5A minimum, official Raspberry Pi PSU recommended)
 
-### Software
-- Raspberry Pi OS Bookworm Lite (64-bit recommended)
-- Internet connection (WiFi or Ethernet)
-- SSH access enabled
+### Software - CRITICAL
+- **Raspberry Pi OS Bookworm Lite** (64-bit **strongly** recommended)
+  - Download: https://www.raspberrypi.com/software/operating-systems/
+  - Use **Raspberry Pi Imager** to flash your SD card
+  - **Enable SSH** during image creation
+  - **Set WiFi credentials** if not using ethernet
+  
+- **Proper hostname configuration** (see below)
+- **Internet connection** (WiFi or Ethernet)
+
+### 🏷️ Hostname Setup - DO THIS FIRST!
+
+**Before running the installer**, set a meaningful hostname for easy identification:
+
+**Recommended naming convention:**
+```
+adsb-pi-[ZIPCODE]
+```
+
+Examples:
+- `adsb-pi-92882` (Corona, CA)
+- `adsb-pi-10001` (New York, NY)
+- `adsb-pi-90210` (Beverly Hills, CA)
+
+**How to set hostname using Raspberry Pi Imager:**
+1. Click the gear icon (⚙️) for advanced options
+2. Set hostname: `adsb-pi-XXXXX` (replace XXXXX with your zip code)
+3. Enable SSH and set your WiFi credentials
+4. Flash the SD card
+
+**How to change hostname on existing installation:**
+```bash
+sudo hostnamectl set-hostname adsb-pi-92882
+sudo reboot
+```
+
+**Why this matters:**
+- Your feeder will be identified as `adsb-pi-92882_abc123` on the network
+- Makes it easy to identify which physical location each feeder represents
+- Essential when managing multiple feeders across different locations
+- Helps with troubleshooting and network monitoring
 
 ## 📖 Documentation
 
-- **[QUICK_START.md](QUICK_START.md)** - Fast-track setup guide
+Before proceeding, review these guides:
+- **[QUICK_START.md](QUICK_START.md)** - Fast-track setup guide with detailed steps
 - **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Complete reference for scaling to multiple feeders
+
+## 🔧 Configuration Information Needed
+
+**Before running the installer**, gather this information:
+
+### 1. Tailscale Authentication (Optional but Recommended)
+- **If you have a Tailscale auth key**: Have it ready to paste
+- **If you don't have a key**: Press Enter when prompted, you'll authenticate via browser
+- Contact [Michael Leckliter](mailto:michael.leckliter@yahoo.com) if you need an auth key
+
+### 2. Geographic Coordinates (REQUIRED)
+You'll need your **precise** location for MLAT (multilateration) to work:
+
+- **Latitude** (e.g., `33.834378`)
+- **Longitude** (e.g., `-117.573072`)
+- **Altitude in meters** (antenna height above sea level, e.g., `395`)
+
+**Finding your coordinates:**
+1. Use Google Maps: Right-click your location → Click the coordinates
+2. For altitude, use: https://whatismyelevation.com/
+
+> **📏 Critical: Use ANTENNA altitude, not ground elevation!**
+>
+> Calculate as: **Ground Elevation + Building Height + Mast Height**
+>
+> Example: Ground = 350m, roof = 15m, mast = 5m → **Total = 370m**
+
+### 3. Pre-Configured Network Settings
+These are already set in the installer:
+- **Installation Directory**: `/opt/TAK_ADSB/`
+- **Aggregator IP**: `100.117.34.88` (Tailscale)
+- **Beast Port**: `30004`
+- **MLAT Port**: `30105`
+- **Remote User**: `remote` (password: `adsb`)
+- **SSH Security**: Remote user accessible only from Tailscale network (100.x.x.x)
+
+## 🚀 Installation Instructions
+
+**Only proceed if you have:**
+- ✅ Raspberry Pi OS Bookworm Lite installed
+- ✅ Hostname set to `adsb-pi-[ZIPCODE]` format
+- ✅ SSH access enabled
+- ✅ Your geographic coordinates ready
+- ✅ Read the requirements above
+
+### Installation Commands
+
+On your Raspberry Pi:
+```bash
+# Download the installer
+wget https://raw.githubusercontent.com/cfd2474/TAK-ADSB-Feeder/main/adsb_feeder_installer.sh
+
+# Make it executable
+chmod +x adsb_feeder_installer.sh
+
+# Run the installer
+./adsb_feeder_installer.sh
+```
+
+The installer will:
+1. Prompt for Tailscale auth key (or press Enter to authenticate via browser)
+2. Ask for your latitude, longitude, and altitude
+3. Display configuration summary for your confirmation
+4. Install and configure all components (15-20 minutes)
+5. Start services and verify connectivity
+
+**During installation:**
+- If you didn't provide an auth key, a browser window will open for Tailscale authentication
+- Follow the prompts carefully
+- Answer "y" to proceed when configuration is shown
+- Wait for all steps to complete
 
 ## 🔗 Already Have an ADS-B Receiver?
 
@@ -86,28 +196,6 @@ If you're already running an existing ADS-B feeder, you can add my aggregator as
 - **[ADSBexchange Instructions](ADSBexchange_feeder_instructions.md)** - Feed from ADSBexchange image
 
 All methods use SSH to create an additional feed while keeping your existing feeds working normally.
-
-## 🔧 Configuration
-
-The installer is pre-configured with:
-- **Installation Directory**: `/opt/TAK_ADSB/`
-- **Aggregator IP**: `100.117.34.88` (Tailscale)
-- **Beast Port**: `30004`
-- **MLAT Port**: `30105`
-- **Remote User**: `remote` (password: `adsb`)
-- **SSH Security**: Remote user accessible only from Tailscale network (100.x.x.x)
-
-You'll be prompted for:
-- **Tailscale Auth Key** Fill this in only if Tailscale key was provided to you. Reach out to [Cfd2474](mailto:michael.leckliter@yaoo.com) for a key.
-If not using a key, you will bypass this step by pressing **Enter** when prompted for key.
-
-- **Latitude** (e.g., `33.834378`)
-- **Longitude** (e.g., `-117.573072`)
-- **Altitude** in meters (antenna height above sea level, e.g., `395`)
-
-> **📏 Altitude Tip:** Use your antenna height, not ground level! Calculate as: Ground Elevation + Building Height + Mast Height
-
-Find your ground elevation with this tool: https://whatismyelevation.com/
 
 ## 📡 Want to Feed to Another Service?
 
@@ -131,10 +219,11 @@ These instructions show you how to run additional feeders alongside this install
          │
 ┌────────▼────────────────┐      Tailscale VPN      ┌──────────────────┐
 │    Raspberry Pi         │◄────────────────────────►│   Aggregator     │
-│  /opt/TAK_ADSB/         │   Beast: Port 30004      │   Server         │
-│  ┌────────────────────┐ │   MLAT:  Port 30105      │   (tar1090)      │
-│  │ readsb + tar1090   │ │                          │   (Network View) │
-│  │ (Local Coverage)   │ │                          └──────────────────┘
+│  adsb-pi-[ZIPCODE]      │   Beast: Port 30004      │   Server         │
+│  /opt/TAK_ADSB/         │   MLAT:  Port 30105      │   (tar1090)      │
+│  ┌────────────────────┐ │                          │   (Network View) │
+│  │ readsb + tar1090   │ │                          └──────────────────┘
+│  │ (Local Coverage)   │ │
 │  └────────────────────┘ │
 │  ┌────────────────────┐ │
 │  │ vnstat monitoring  │ │
@@ -197,26 +286,21 @@ Features:
 
 ## 🔍 Verification
 
-After installation completes, check:
+After installation completes, verify everything is working:
 ```bash
-# Service status
+# Check service status
 sudo systemctl status readsb
 sudo systemctl status mlat-client
 sudo systemctl status lighttpd
 sudo systemctl status vnstat
 
-# Network connections
+# Verify aggregator connection
 netstat -tn | grep 100.117.34.88
 
-# Network bandwidth statistics
-vnstat -d    # Daily stats
-vnstat -m    # Monthly stats
-vnstat -l    # Live traffic
-
-# Local tar1090 data
+# Check local data
 curl http://localhost/tar1090/data/aircraft.json
 
-# Live aircraft data
+# View live aircraft (Ctrl+C to exit)
 /opt/TAK_ADSB/bin/viewadsb
 
 # Check installer version
@@ -230,6 +314,13 @@ tailscale ip -4
 ```
 
 Then access your local tar1090: `http://100.86.194.33/tar1090/`
+
+**Check network usage:**
+```bash
+vnstat -d    # Daily stats
+vnstat -m    # Monthly stats
+vnstat -l    # Live traffic (Ctrl+C to stop)
+```
 
 ## 🔐 Remote Access
 
@@ -406,13 +497,19 @@ See [QUICK_START.md](QUICK_START.md) for detailed troubleshooting.
 Each feeder gets a unique name automatically: `hostname_MAC`
 
 **Best Practice - Use Zip Code Naming:**
-1. Flash SD card
-2. Set hostname to `adsb-pi-ZIPCODE` (e.g., `adsb-pi-92882`)
-3. Run installer
-4. Each feeder auto-connects to aggregator
-5. **Each feeder gets its own tar1090** at its Tailscale IP
-6. **Remote access** available via `ssh remote@[TAILSCALE_IP]` (Tailscale only)
-7. **Easy updates** with `adsb-update all` on each feeder
+1. Flash SD card with **Bookworm Lite**
+2. Set hostname to `adsb-pi-ZIPCODE` (e.g., `adsb-pi-92882`) **during imaging**
+3. Boot Pi and SSH in
+4. Run installer
+5. Each feeder auto-connects to aggregator
+6. **Each feeder gets its own tar1090** at its Tailscale IP
+7. **Remote access** available via `ssh remote@[TAILSCALE_IP]` (Tailscale only)
+8. **Easy updates** with `adsb-update all` on each feeder
+
+**Example deployment:**
+- `adsb-pi-92882` → Corona, CA location
+- `adsb-pi-90210` → Beverly Hills, CA location
+- `adsb-pi-10001` → New York, NY location
 
 **Access all feeders from the aggregator dashboard:**
 - Main stats: `http://104.225.219.254/graphs1090/`
@@ -511,6 +608,8 @@ Special thanks to the ADS-B community for their continued development and suppor
 For issues specific to this installer, open a GitHub issue.
 
 For readsb/mlat-client/tar1090 questions, see their respective repositories.
+
+For Tailscale auth key requests, contact: [michael.leckliter@yahoo.com](mailto:michael.leckliter@yahoo.com)
 
 ---
 
