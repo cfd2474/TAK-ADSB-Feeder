@@ -120,7 +120,7 @@ Before proceeding, review these guides:
 
 ### 1. Tailscale Authentication (Optional but Recommended)
 - **If you have a Tailscale auth key**: Have it ready to paste
-- **If you don't have a key**: Press Enter when prompted, you'll authenticate via browser
+- **If you don't have a key**: Press Enter when prompted, you'll authenticate via browser or skip completely.
 - Contact [Michael Leckliter](mailto:michael.leckliter@yahoo.com) if you need an auth key
 
 ### 2. Geographic Coordinates (REQUIRED)
