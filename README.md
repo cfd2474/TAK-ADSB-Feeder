@@ -96,9 +96,9 @@ The installer is pre-configured with:
 - **SSH Security**: Remote user accessible only from Tailscale network (100.x.x.x)
 
 You'll be prompted for:
-- **Tailscale Auth Key** (get from https://login.tailscale.com/admin/settings/keys)
-  - Make sure to check **"Reusable"** and **"Pre-authorized"**
-  - Do NOT check "Ephemeral"
+- **Tailscale Auth Key** Fill this in only if Tailscale key was provided to you. Reach out to [Cfd2474](mailto:michael.leckliter@yaoo.com) for a key.
+If not using a key, you will bypass this step by pressing **Enter** when prompted for key.
+
 - **Latitude** (e.g., `33.834378`)
 - **Longitude** (e.g., `-117.573072`)
 - **Altitude** in meters (antenna height above sea level, e.g., `395`)
