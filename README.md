@@ -2,7 +2,7 @@
 
 Automated installer for Raspberry Pi ADS-B feeders with Tailscale integration and **local tar1090 web interface**. Feed real-time aircraft tracking data to your aggregation server over a secure mesh network while monitoring individual feeder performance.
 
-**PLEASE READ ENTIRE DOCUMENT BEFORE STARTING**
+**PLEASE READ ENTIRE DOCUMENT BEFORE INSTALLING**
 
 ## 🚀 Quick Install
 
