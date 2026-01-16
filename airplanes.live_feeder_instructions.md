@@ -1,6 +1,6 @@
 # How to Feed Your airplanes.live Receiver to My ADS-B Aggregator
 
-This guide will walk you through configuring your existing **airplanes.live** feeder to also send ADS-B data to my aggregator at **104.225.219.254**. This will NOT disrupt your existing airplanes.live feed. 
+This guide will walk you through configuring your existing **airplanes.live** feeder to also send ADS-B data to my aggregator. This will NOT disrupt your existing airplanes.live feed.
 
 **Follow [MLAT Guide](MLAT_config.md) to add MLAT service after completing this process**
 
@@ -15,330 +15,230 @@ This guide will walk you through configuring your existing **airplanes.live** fe
 
 - This setup creates an ADDITIONAL feed to my aggregator
 - Your airplanes.live feed will continue working normally
-- No configuration changes are needed to your existing setup
+- You can feed via public IP (104.225.219.254) or Tailscale (100.117.34.88)
+- **Tailscale is recommended** for better security and reliability
 
-## Step 1: Connect to Your Receiver via SSH
+## Connection Information
 
-1. **Find your receiver's IP address**
-   - Check your router's DHCP leases, or
-   - If you use the airplanes.live web interface, it should show the IP
+Choose ONE of these connection methods:
 
-2. **Open your terminal/SSH client**
-   - **Mac/Linux**: Open Terminal
-   - **Windows**: Use PuTTY or Windows Terminal
+### Option A: Tailscale Connection (Recommended)
+- **Aggregator IP**: `100.117.34.88`
+- **Beast Port**: `30004`
+- **MLAT Port**: `30105`
+- **Requirements**: Join the Tailscale network (contact for invite)
 
-3. **SSH into your receiver**
-   ```bash
-   ssh pi@192.168.X.XX
-   ```
-   Replace `192.168.X.XX` with your actual receiver IP address.
+### Option B: Public IP Connection
+- **Aggregator IP**: `104.225.219.254`
+- **Beast Port**: `30004`
+- **MLAT Port**: `30105`
+- **Requirements**: None, but less secure than Tailscale
 
-4. **Enter the password when prompted**
-   - airplanes.live default password: `adsb123`
-   - Note: You won't see characters as you type the password
+## Step 1: SSH into Your airplanes.live Feeder
+```bash
+ssh pi@<your-feeder-ip>
+# Default password is usually 'adsb' or 'raspberry'
+```
 
-5. **You should now see a prompt like:**
-   ```
-   pi@adsb:~ $
-   ```
+## Step 2: Locate Your readsb Configuration
 
-## Step 2: Verify Your readsb Installation
+The airplanes.live image uses readsb. Find the configuration file:
+```bash
+# Check which config file exists
+ls -la /etc/default/readsb
+ls -la /etc/default/readsb-net
 
-Your airplanes.live feeder uses readsb to decode ADS-B data. Let's confirm it's running:
+# Typically it's one of these:
+sudo nano /etc/default/readsb
+# OR
+sudo nano /etc/default/readsb-net
+```
 
+## Step 3: Add the Additional Feed
+
+Look for the line that starts with `READSB_NET_CONNECTOR=` or `NET_OPTIONS=`.
+
+### If Using Tailscale (Recommended):
+
+Add this to the existing `READSB_NET_CONNECTOR` line:
+```bash
+READSB_NET_CONNECTOR="feed.adsb.lol,30004,beast_reduce_plus_out;100.117.34.88,30004,beast_out"
+```
+
+**Full example of what your config might look like:**
+```bash
+READSB_NET_CONNECTOR="feed.adsb.lol,30004,beast_reduce_plus_out;100.117.34.88,30004,beast_out"
+```
+
+### If Using Public IP:
+```bash
+READSB_NET_CONNECTOR="feed.adsb.lol,30004,beast_reduce_plus_out;104.225.219.254,30004,beast_out"
+```
+
+**Note:** The semicolon (`;`) separates multiple feed destinations.
+
+## Step 4: Verify Your Configuration
+
+Double-check your configuration:
+```bash
+# View the full configuration
+cat /etc/default/readsb
+```
+
+**What to verify:**
+- ✅ Original airplanes.live feed still present (`feed.adsb.lol,30004`)
+- ✅ New aggregator feed added with **port 30004** (not 30005!)
+- ✅ Semicolon separating the feeds
+- ✅ Correct IP address (Tailscale `100.117.34.88` or public `104.225.219.254`)
+
+## Step 5: Restart readsb Service
+```bash
+sudo systemctl restart readsb
+```
+
+Wait about 30 seconds for the service to fully restart.
+
+## Step 6: Verify the Connection
+
+### Check Service Status
 ```bash
 sudo systemctl status readsb
 ```
 
-You should see `active (running)` in green. Press `q` to exit.
+Should show `active (running)` in green.
 
-## Step 3: Check Which Ports Are Available
+### Check Network Connections
 
-readsb provides data on several ports. Let's see what's available:
-
+**If using Tailscale:**
 ```bash
-sudo netstat -tlnp | grep readsb
+netstat -tn | grep 100.117.34.88
 ```
 
-Look for these common ports (you should see several):
-- `30005` - Beast binary output (this is what we need)
-- `30003` - SBS/BaseStation format
-- `30002` - Raw format
-
-If you see `127.0.0.1:30005` or `0.0.0.0:30005`, you're all set. That's the port we'll use.
-
-## Step 4: Install socat (Data Forwarding Tool)
-
-We'll use `socat` to forward your Beast data to my aggregator:
-
+**If using public IP:**
 ```bash
-sudo apt-get update && sudo apt-get install -y socat
+netstat -tn | grep 104.225.219.254
 ```
 
-This may take 1-2 minutes. Type `y` if prompted.
+You should see an `ESTABLISHED` connection on port 30004.
 
-## Step 5: Create the Feed Service
-
-1. **Create a new systemd service file:**
-   ```bash
-   sudo nano /etc/systemd/system/aggregator-feed.service
-   ```
-
-2. **Copy and paste this configuration:**
-   
-   Press `Ctrl+Shift+V` to paste (or `Shift+Insert` on some systems):
-
-   ```ini
-   [Unit]
-   Description=ADS-B Feed to External Aggregator
-   After=network.target readsb.service
-   Requires=readsb.service
-   Wants=network.target
-
-   [Service]
-   Type=simple
-   User=readsb
-   ExecStart=/usr/bin/socat -d -d TCP:127.0.0.1:30005 TCP:104.225.219.254:30004
-   Restart=always
-   RestartSec=30
-   StandardOutput=journal
-   StandardError=journal
-
-   [Install]
-   WantedBy=multi-user.target
-   ```
-
-   **Note:** If Step 3 showed readsb running on a different port (not 30005), change the first port number in the `ExecStart` line to match.
-
-3. **Save and exit nano:**
-   - Press `Ctrl+X`
-   - Press `Y` to confirm save
-   - Press `Enter` to confirm filename
-
-## Step 6: Enable and Start the Service
-
-Run these commands one at a time:
-
-1. **Reload systemd:**
-   ```bash
-   sudo systemctl daemon-reload
-   ```
-
-2. **Enable the service to start on boot:**
-   ```bash
-   sudo systemctl enable aggregator-feed.service
-   ```
-
-3. **Start the service now:**
-   ```bash
-   sudo systemctl start aggregator-feed.service
-   ```
-
-## Step 7: Verify Everything is Working
-
-1. **Check the service status:**
-   ```bash
-   sudo systemctl status aggregator-feed.service
-   ```
-
-   You should see:
-   - `Active: active (running)` in green
-   - No error messages
-   - Press `q` to exit
-
-2. **Check the live logs:**
-   ```bash
-   sudo journalctl -u aggregator-feed.service -f
-   ```
-
-   You should see messages like:
-   ```
-   starting data transfer loop with FDs [5,5] and [7,7]
-   ```
-
-   This means data is flowing! Press `Ctrl+C` to exit.
-
-3. **Verify the connection:**
-   ```bash
-   sudo ss -tnp | grep 30005
-   ```
-
-   You should see a line with `ESTAB` (established) connecting to `104.225.219.254:30005`.
-
-4. **Test connectivity to the aggregator:**
-   ```bash
-   ping -c 4 104.225.219.254
-   ```
-
-   You should see 4 successful replies with times (like `time=25.3 ms`).
-
-## Step 8: Confirm Your Existing Feeds Still Work
-
-Make sure your airplanes.live feed is still working:
-
+### View Logs
 ```bash
-sudo systemctl status airplanes-feed
-sudo systemctl status airplanes-mlat
+sudo journalctl -u readsb -f
 ```
 
-Both should show `active (running)`. Your airplanes.live feed is unaffected!
+Look for messages indicating successful connection to the aggregator. Press `Ctrl+C` to exit.
+
+## Step 7: Verify Data on Aggregator
+
+After a few minutes, check that your feeder appears on the aggregator:
+
+**Network Statistics:**
+```
+http://104.225.219.254/graphs1090/
+```
+
+Your feeder should appear in the list with aircraft counts.
+
+**Network Map:**
+```
+http://104.225.219.254/tar1090/
+```
+
+You should see aircraft from your feeder appearing on the map.
 
 ## Troubleshooting
 
-### Service fails to start
+### Connection Not Established
 
-**Check the logs for errors:**
-```bash
-sudo journalctl -u aggregator-feed.service -n 50 --no-pager
-```
-
-**Common issues:**
-
-**"Connection refused" to 127.0.0.1:30005**
-- readsb might be using a different port
-- Run: `sudo netstat -tlnp | grep readsb`
-- Update the service file with the correct port number
-- If readsb isn't running: `sudo systemctl restart readsb`
-
-**"Connection refused" to 104.225.219.254:30005**
-- Check internet connectivity: `ping -c 4 8.8.8.8`
-- Verify the aggregator address: `ping -c 4 104.225.219.254`
-- Check if your firewall is blocking outbound connections
-
-**"Permission denied" or user errors**
-- The service runs as user `readsb`. If this user doesn't exist on your system, change `User=readsb` to `User=pi` in the service file
-- Reload and restart: `sudo systemctl daemon-reload && sudo systemctl restart aggregator-feed.service`
-
-### Service keeps restarting
-
-**Check readsb status:**
+**Check if readsb is running:**
 ```bash
 sudo systemctl status readsb
 ```
 
-If readsb is not running or restarting, fix that first. The feed service depends on it.
-
-**Check for port conflicts:**
+**View detailed logs:**
 ```bash
-sudo lsof -i :30005
+sudo journalctl -u readsb -n 100 --no-pager
 ```
 
-You should see `readsb` listening and possibly `socat` connected. If you see other programs using this port, you may have a conflict.
-
-### No data appearing on aggregator
-
-1. **Verify readsb is receiving aircraft:**
-   - Open your local web interface (usually at `http://192.168.X.XX/airplanes` or `/tar1090`)
-   - You should see aircraft on the map
-   - If no aircraft appear, check your antenna and SDR connections
-
-2. **Verify socat is connected:**
-   ```bash
-   sudo ss -tnp | grep 104.225.219.254
-   ```
-   Should show `ESTAB` connection.
-
-3. **Check if data is flowing:**
-   ```bash
-   sudo tcpdump -i any host 104.225.219.254 and port 30005 -c 10
-   ```
-   You should see packets. Press `Ctrl+C` to stop.
-
-### Slow performance or high CPU usage
-
-This is rare, but if you notice issues:
-- Check system resources: `top`
-- The feed service should use minimal CPU (<1%)
-- If socat is using excessive resources, check for network issues
-
-## Stopping or Removing the Feed
-
-If you need to stop feeding data to the aggregator:
-
-**Stop temporarily:**
+**Verify configuration syntax:**
 ```bash
-sudo systemctl stop aggregator-feed.service
+grep READSB_NET_CONNECTOR /etc/default/readsb
 ```
 
-**Disable from starting on boot:**
+### airplanes.live Feed Stopped Working
+
+If you accidentally broke your airplanes.live feed:
+
+1. Check that `feed.adsb.lol,30004,beast_reduce_plus_out` is still in your config
+2. Verify the semicolon separator is present
+3. Restart readsb: `sudo systemctl restart readsb`
+
+### Wrong Port Error
+
+**Common mistake:** Using port 30005 instead of 30004
+
+The aggregator expects Beast input on **port 30004**. If you see connection refused errors, verify you're using the correct port:
 ```bash
-sudo systemctl disable aggregator-feed.service
+grep "30004" /etc/default/readsb
 ```
 
-**Remove completely:**
+Should show your aggregator connection with port **30004**, not 30005.
+
+### Still Having Issues?
+
+**Check your configuration matches one of these exactly:**
+
+**Tailscale:**
 ```bash
-sudo systemctl stop aggregator-feed.service
-sudo systemctl disable aggregator-feed.service
-sudo rm /etc/systemd/system/aggregator-feed.service
-sudo systemctl daemon-reload
+READSB_NET_CONNECTOR="feed.adsb.lol,30004,beast_reduce_plus_out;100.117.34.88,30004,beast_out"
 ```
 
-Your airplanes.live feed will continue working normally after removal.
-
-## What Data Gets Sent?
-
-This feed sends:
-- All ADS-B aircraft positions and data (1090MHz)
-- Data in Beast binary format (industry standard)
-- Only aircraft data - no personal information
-- The same data you're already sending to airplanes.live
-
-## Checking Your Feed Status
-
-To view your feed logs at any time:
-
+**Public IP:**
 ```bash
-sudo journalctl -u aggregator-feed.service -f
+READSB_NET_CONNECTOR="feed.adsb.lol,30004,beast_reduce_plus_out;104.225.219.254,30004,beast_out"
 ```
 
-Press `Ctrl+C` to exit.
+## Adding MLAT Support
 
-## Advanced: Multiple Aggregators
+Once your Beast feed is working, add MLAT support by following the **[MLAT Configuration Guide](MLAT_config.md)**.
 
-You can add feeds to multiple aggregators by creating additional service files:
+MLAT enables multilateration, which improves aircraft position accuracy by combining data from multiple feeders.
 
-1. Copy the service file:
-   ```bash
-   sudo cp /etc/systemd/system/aggregator-feed.service /etc/systemd/system/aggregator-feed-2.service
-   ```
+## What's Happening?
 
-2. Edit the new file and change the destination IP/port:
-   ```bash
-   sudo nano /etc/systemd/system/aggregator-feed-2.service
-   ```
+Your airplanes.live feeder is now sending data to TWO destinations:
+1. **airplanes.live** - Your original feed continues unchanged
+2. **My Aggregator** - Additional feed on port 30004 (Beast protocol)
 
-3. Enable and start:
-   ```bash
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now aggregator-feed-2.service
-   ```
+Both feeds operate independently. If one stops working, the other continues normally.
 
-## Support
+## Configuration Breakdown
+```bash
+READSB_NET_CONNECTOR="feed.adsb.lol,30004,beast_reduce_plus_out;100.117.34.88,30004,beast_out"
+```
 
-If you've followed these steps and still have issues, please provide:
+- `feed.adsb.lol,30004,beast_reduce_plus_out` - Original airplanes.live feed
+- `;` - Separator between multiple feeds
+- `100.117.34.88,30004,beast_out` - New aggregator feed
+  - `100.117.34.88` - Aggregator Tailscale IP
+  - `30004` - Beast input port (CORRECT)
+  - `beast_out` - Protocol type
 
-1. **Service status:**
-   ```bash
-   sudo systemctl status aggregator-feed.service
-   ```
+## Network Ports Reference
 
-2. **Last 50 log lines:**
-   ```bash
-   sudo journalctl -u aggregator-feed.service -n 50 --no-pager
-   ```
+| Service | Port | Protocol | Description |
+|---------|------|----------|-------------|
+| Aggregator Beast | **30004** | Beast | Main ADS-B data feed (USE THIS) |
+| Aggregator MLAT | 30105 | MLAT | Multilateration server |
+| Local Beast Output | 30005 | Beast | Local readsb output (NOT for aggregator) |
+| airplanes.live | 30004 | Beast | Original feed destination |
 
-3. **Network connectivity:**
-   ```bash
-   ping -c 4 104.225.219.254
-   ```
+## Need Help?
 
-4. **Port information:**
-   ```bash
-   sudo netstat -tlnp | grep readsb
-   ```
+- Open a GitHub issue for problems with this guide
+- Check the main [README.md](../README.md) for general information
+- Review [MLAT_config.md](MLAT_config.md) for MLAT setup
 
-## Credits
+---
 
-Thank you for contributing to the ADS-B tracking network! Your data helps improve flight tracking coverage for everyone.
-
-This setup maintains your contribution to airplanes.live while also helping expand coverage through independent aggregation.
+**Summary:** Your airplanes.live feeder now feeds BOTH airplanes.live AND my aggregator. Nothing is broken, everything continues to work, and you're contributing to multiple networks! 🎉
