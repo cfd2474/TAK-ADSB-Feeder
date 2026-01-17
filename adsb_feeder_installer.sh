@@ -20,6 +20,9 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Capture absolute script path at the very beginning (before any directory changes)
+SCRIPT_PATH="$(readlink -f "$0")"
+
 # ============================================================================
 # SELF-UPDATE FUNCTIONALITY
 # ============================================================================
@@ -55,20 +58,20 @@ update_script() {
         
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             # Backup current script with timestamp
-            BACKUP_NAME="${0}.backup.$(date +%Y%m%d_%H%M%S)"
-            cp "$0" "$BACKUP_NAME"
+            BACKUP_NAME="${SCRIPT_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
+            cp "$SCRIPT_PATH" "$BACKUP_NAME"
             echo -e "${GREEN}✓ Backed up current script to $BACKUP_NAME${NC}"
             
             # Replace current script with new version
-            cp "$TEMP_SCRIPT" "$0"
-            chmod +x "$0"
+            cp "$TEMP_SCRIPT" "$SCRIPT_PATH"
+            chmod +x "$SCRIPT_PATH"
             
             echo -e "${GREEN}✓ Script updated to version $LATEST_VERSION${NC}"
             echo -e "${YELLOW}Restarting with new version...${NC}"
             echo ""
             
             rm -f "$TEMP_SCRIPT"
-            exec "$0" "$@"
+            exec "$SCRIPT_PATH" "$@"
         else
             echo -e "${YELLOW}Update cancelled${NC}"
             rm -f "$TEMP_SCRIPT"
@@ -812,9 +815,15 @@ echo -e "${GREEN}✓ Created system update command: adsb-update${NC}"
 
 # Save a copy of this installer to the installation directory
 echo -e "${BLUE}Saving installer script to $INSTALL_DIR/scripts/${NC}"
-sudo cp "$0" "$INSTALL_DIR/scripts/adsb_feeder_installer.sh"
-sudo chmod +x "$INSTALL_DIR/scripts/adsb_feeder_installer.sh"
-echo -e "${GREEN}✓ Installer script saved${NC}"
+
+if [ -f "$SCRIPT_PATH" ]; then
+    sudo cp "$SCRIPT_PATH" "$INSTALL_DIR/scripts/adsb_feeder_installer.sh"
+    sudo chmod +x "$INSTALL_DIR/scripts/adsb_feeder_installer.sh"
+    echo -e "${GREEN}✓ Installer script saved${NC}"
+else
+    echo -e "${YELLOW}⚠ Could not save installer script (script path: $SCRIPT_PATH)${NC}"
+    echo -e "${YELLOW}  You can manually copy it later if needed${NC}"
+fi
 
 echo ""
 echo -e "${GREEN}[15/15] Starting services...${NC}"
