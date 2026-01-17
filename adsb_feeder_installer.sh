@@ -167,6 +167,21 @@ REMOTE_USER="remote"
 REMOTE_PASSWORD="adsb"
 
 # ============================================================================
+# WEB INTERFACE CONFIGURATION (RESERVED FOR FUTURE USE)
+# These variables are prepared for future web-based configuration interface
+# The web interface is not yet included in this installer
+# ============================================================================
+
+# Web interface settings (not currently used)
+WEBCONFIG_ENABLED=false           # Reserved: Enable web configuration interface
+WEBCONFIG_PORT="8080"            # Reserved: Web interface port
+WEBCONFIG_DIR="$INSTALL_DIR/webconfig"  # Reserved: Web interface directory
+
+# Configuration storage (used by future web interface)
+CONFIG_DIR="$INSTALL_DIR/config"
+OUTPUTS_CONFIG="$CONFIG_DIR/outputs.json"
+
+# ============================================================================
 # PRE-FLIGHT CHECKS
 # ============================================================================
 
@@ -343,6 +358,7 @@ sudo mkdir -p "$INSTALL_DIR/data"
 sudo mkdir -p "$INSTALL_DIR/run"
 sudo mkdir -p "$INSTALL_DIR/logs"
 sudo mkdir -p "$INSTALL_DIR/scripts"
+sudo mkdir -p "$INSTALL_DIR/config"  # Reserved for future web interface configuration
 
 echo ""
 echo -e "${GREEN}[2/16] Updating system packages...${NC}"
@@ -678,6 +694,45 @@ RECEIVER_OPTIONS="\$RECEIVER_OPTIONS --stats-every 3600"
 # Combined options
 READSB_EXTRA_ARGS="\$RECEIVER_OPTIONS \$DECODER_OPTIONS \$NET_OPTIONS \$JSON_OPTIONS"
 EOF
+
+# Create outputs configuration file (reserved for future web interface)
+sudo tee "$OUTPUTS_CONFIG" > /dev/null <<EOF
+{
+  "version": "1.0",
+  "feeder_info": {
+    "name": "$FEEDER_NAME",
+    "latitude": $FEEDER_LAT,
+    "longitude": $FEEDER_LON,
+    "altitude": $FEEDER_ALT
+  },
+  "outputs": [
+    {
+      "id": "primary",
+      "name": "TAK Aggregator (Primary)",
+      "type": "beast",
+      "host": "$AGGREGATOR_TAILSCALE_IP",
+      "port": $AGGREGATOR_BEAST_PORT,
+      "enabled": true,
+      "primary": true,
+      "connection_type": "tailscale"
+    }
+  ],
+  "mlat_clients": [
+    {
+      "id": "primary_mlat",
+      "name": "TAK Aggregator MLAT",
+      "server": "$AGGREGATOR_TAILSCALE_IP:$AGGREGATOR_MLAT_PORT",
+      "enabled": $ENABLE_MLAT,
+      "input_connect": "localhost:30005",
+      "results": "beast,connect,localhost:30104"
+    }
+  ]
+}
+EOF
+
+sudo chown "$REMOTE_USER:$REMOTE_USER" "$OUTPUTS_CONFIG"
+echo -e "${BLUE}Created configuration file: $OUTPUTS_CONFIG${NC}"
+echo -e "${YELLOW}NOTE: This file is reserved for future web interface use${NC}"
 
 # Create systemd service with hardcoded values
 sudo tee /etc/systemd/system/readsb.service > /dev/null <<EOF
