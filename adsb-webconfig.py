@@ -1363,7 +1363,7 @@ def delete_mlat(client_id):
     else:
         return jsonify({"success": False, "message": "Failed to save configuration"}), 500
 
-@app.route('/api/mlat/<client_id>/toggle', methods='POST'])
+@app.route('/api/mlat/<client_id>/toggle', methods=['POST'])
 def toggle_mlat(client_id):
     """Enable/disable an MLAT client"""
     config = load_config()
